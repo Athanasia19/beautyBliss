@@ -170,7 +170,6 @@ return [
         App\Providers\RouteServiceProvider::class,
         // yajra data tables
         Yajra\DataTables\DataTablesServiceProvider::class,
-        // Yajra\DataTables\ButtonsServiceProvider::class,
 
     ])->toArray(),
 
