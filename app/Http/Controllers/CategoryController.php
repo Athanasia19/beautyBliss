@@ -1,88 +1,106 @@
 <?php
 
+
 namespace App\Http\Controllers;
+
 
 use App\Models\Category;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Validator;
+use App\DataTables\CategoryDataTable;
 
 class CategoryController extends Controller
 {
-    public function index()
-    {
-        $categories = Category::all();
+    // public function index()
+    // {
+    //     $categories = Category::all();
+    //     return view('categories.index', compact('categories'));
+    // }
 
-        return view('category.index', compact('categories'));
+    public function index(CategoryDataTable $dataTable)
+    {
+        return $dataTable->render('categories.index');
     }
 
     public function create()
     {
-        return view('category.create');
+        return view('categories.create');
     }
+
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'name' => 'required',
             'slug' => 'required|unique:categories',
             'description' => 'required',
-            'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $category = new Category();
-        $category->name = $request->input('name');
-        $category->slug = $request->input('slug');
-        $category->description = $request->input('description');
 
-        // Upload and save the image if provided
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('images');
-            $category->image = $imagePath;
+            $image = $request->file('image');
+            $imageName = time() . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('images'), $imageName);
+            $validatedData['image'] = $imageName;
         }
 
-        $category->save();
 
-        return redirect()->route('category.index')->with('success', 'Category created successfully.');
+        Category::create($validatedData);
+
+
+        return redirect()->route('categories.index')->with('success', 'Category created successfully.');
     }
 
-    public function edit(Category $category)
+
+    public function show($id)
     {
-        return view('category.edit', compact('category'));
+        $category = Category::findOrFail($id);
+        return view('categories.show', compact('category'));
     }
 
-    public function update(Request $request, Category $category)
+
+    public function edit($id)
     {
-        $request->validate([
+        $category = Category::findOrFail($id);
+        return view('categories.edit', compact('category'));
+    }
+
+
+    public function update(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
             'name' => 'required',
-            'slug' => 'required|unique:categories,slug,' . $category->id,
+            'slug' => 'required|unique:categories,slug,' . $id,
             'description' => 'required',
-            'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        $category = Category::findOrFail($id);
         $category->name = $request->input('name');
         $category->slug = $request->input('slug');
         $category->description = $request->input('description');
 
-        // Upload and save the image if provided
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('images');
-            $category->image = $imagePath;
+            $image = $request->file('image');
+            $imageName = time() . '.' . $image->getClientOriginalExtension();
+            $image->storeAs('public', $imageName);
+
+            $category->image = $imageName;
         }
 
         $category->save();
 
-        return redirect()->route('category.index')->with('success', 'Category updated successfully.');
+        return redirect()->route('categories.index')->with('success', 'Category updated successfully.');
     }
 
-    public function destroy(Category $category)
-    {
-        // Delete the image file if it exists
-        if ($category->image) {
-            Storage::delete($category->image);
-        }
 
+    public function destroy($id)
+    {
+        $category = Category::findOrFail($id);
         $category->delete();
 
-        return redirect()->route('category.index')->with('success', 'Category deleted successfully.');
+
+        return redirect()->route('categories.index')->with('success', 'Category deleted successfully.');
     }
 }

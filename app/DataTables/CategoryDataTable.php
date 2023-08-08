@@ -9,6 +9,8 @@ use Yajra\DataTables\Html\Editor\Editor;
 use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
 use Barryvdh\Debugbar\Facade as DebugBar;
+use Illuminate\Support\Collection;
+
 
 class CategoryDataTable extends DataTable
 {
@@ -22,14 +24,33 @@ class CategoryDataTable extends DataTable
     {
         return datatables()
             ->collection($query)
-            ->addColumn('action', function ($row) {
-                $actionBtn =
-                    '<a href="' .
-                    route('category.edit', $row->category_id) .
-                    '" class="edit btn btn-success btn-sm">Edit</a> <a href="javascript:void(0)" class="delete btn btn-danger btn-sm">Delete</a>';
-                return $actionBtn;
+            ->addColumn('image', function ($category) {
+                return '<img src="' . asset('storage/images/' . $category->image) . '" alt="' . $category->name . '" class="h-16">';
             })
-            ->rawColumns(['action']);
+            ->addColumn('action', function ($row) {
+                if($row -> deleted_at ==! null) {
+                    $actionBtn = '  <td><i class="fas fa-edit" style="color:gray"></i></td>
+                    <td>
+                      <i class="fa-solid fa-trash" style="color:gray"></i></td>
+                      <td><a href="' .route('categories.restore', $row->item_id) .'">
+                      <i class="fas fa-undo"></i></a></td>';
+        
+                   }
+                   else{
+                    $actionBtn = '<td><a href="' .route('categories.edit', $row->item_id) .'">
+                    <i class="fas fa-edit"></i></a></td>
+                    <td>
+                      <a href="' .
+                      route('categories.delete', $row->item_id) .
+                      '"> <i class="fas fa-trash" style="color:red"></i></a>
+        
+                  </td>';
+                   }
+    
+                    return $actionBtn; 
+            })
+            ->rawColumns(['image', 'action']);
+            
     }
 
     /**
@@ -40,7 +61,12 @@ class CategoryDataTable extends DataTable
      */
     public function query(Category $model)
     {
+        // $cat = Category::all();
+
+        // return $cat;
+
         return $model->newQuery();
+
     }
 
     /**
@@ -54,14 +80,14 @@ class CategoryDataTable extends DataTable
             ->setTableId('categories-table')
             ->columns($this->getColumns())
             ->minifiedAjax()
-            ->dom('Bfrtip')
-            ->orderBy(1)
-            ->buttons(
+            ->dom('Blrtip')
+            ->orderBy(0)
+            ->buttons([
                 Button::make('export'),
                 Button::make('print'),
                 Button::make('reset'),
-                Button::make('reload')
-            );
+                Button::make('reload'),
+            ]);
     }
 
     /**
@@ -92,7 +118,7 @@ class CategoryDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'Categories_' . date('YmdHis');
     }
